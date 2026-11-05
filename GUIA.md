@@ -19,9 +19,12 @@ O servidor roda de dois jeitos:
 
 Comece pelo stdio (não exige Docker). Passe para o Kong quando quiser validar autenticação, rate limit ou falhas de rede. Para depurar só o transporte HTTP, sem gateway, use o passo 7. Usar os dois modos ao mesmo tempo duplica as tools no Claude Code; desative um deles em `/mcp`.
 
-```
-Claude Code ──stdio──────────────────────────► bin/mcp-frete
-Claude Code ──HTTP :8000/mcp (apikey)──► Kong ──► mcp-frete:8080/mcp
+```mermaid
+flowchart LR
+    CC[Claude Code]
+    CC -- "stdio" --> BIN["bin/mcp-frete"]
+    CC -- "HTTP :8000/mcp<br/>header apikey" --> KONG[Kong]
+    KONG -- "HTTP :8080/mcp" --> SRV["mcp-frete (container)"]
 ```
 
 ## 1. Pré-requisitos
@@ -55,6 +58,32 @@ O `.mcp.json` aponta para `./bin/mcp-frete`. Recompile sempre que mudar o códig
 | `contratar_envio` | Contrata uma cotação | Efeito colateral: `dry_run` por padrão, `chave_idempotencia`, estado entre chamadas, expiração |
 
 O estado (cotações e envios) fica em memória e some quando o servidor reinicia.
+
+### Decisão do `contratar_envio`
+
+A ordem das checagens em `handlers.go` importa: a idempotência vem antes de tudo, e o `dry_run` só corta no final, depois de validar o pedido inteiro.
+
+```mermaid
+flowchart TD
+    A([contratar_envio]) --> B{schema válido?}
+    B -- não --> E0[/"erro do SDK, sem JSON"/]
+    B -- sim --> C{dry_run = false e<br/>chave já usada?}
+    C -- "sim, mesmo pedido" --> R[/"devolve o envio<br/>reaproveitado: true"/]
+    C -- "sim, pedido diferente" --> E1[/conflito_idempotencia/]
+    C -- não --> D{cotação existe?}
+    D -- não --> E2[/cotacao_nao_encontrada/]
+    D -- sim --> F{expirou?}
+    F -- sim --> E3[/cotacao_expirada/]
+    F -- não --> G{já usada em<br/>outro envio?}
+    G -- sim --> E4[/cotacao_ja_utilizada/]
+    G -- não --> H{serviço está<br/>nas opções?}
+    H -- não --> E5[/servico_indisponivel_na_cotacao/]
+    H -- sim --> I{documento, e-mail e<br/>UF válidos?}
+    I -- não --> E6[/documento_invalido,<br/>email_invalido ou uf_invalida/]
+    I -- sim --> J{dry_run?}
+    J -- sim --> K[/"status: simulado<br/>nada é gravado"/]
+    J -- não --> L[/"status: contratado<br/>grava o envio e marca a cotação"/]
+```
 
 ### Regras de negócio
 

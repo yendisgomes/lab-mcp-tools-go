@@ -24,6 +24,53 @@ Peça, por exemplo: *"Quanto custa mandar 2 camisetas de 300 g (caixa 30×20×5)
 
 O passo a passo completo (cenários de teste, Inspector, curl, Kong, falhas provocadas) está em [GUIA.md](GUIA.md).
 
+## Como funciona
+
+### Fluxo de uma contratação
+
+Cada validação acontece em um ponto diferente: o schema barra o formato antes do handler, o handler aplica as regras de negócio, e o usuário confirma antes de qualquer efeito irreversível.
+
+```mermaid
+sequenceDiagram
+    actor U as Usuário
+    participant C as Claude (cliente MCP)
+    participant S as Servidor mcp-frete
+    participant A as Armazém (memória)
+
+    U->>C: "Quanto custa enviar...?"
+    C->>S: cotar_frete(CEPs, itens)
+    S->>S: valida o schema (pattern, enums, limites)
+    S->>S: aplica as regras (peso taxado, zona, categorias)
+    S->>A: guarda a cotação (validade de 15 min)
+    S-->>C: cotacao_id, opcoes, descartadas, avisos
+    C-->>U: tabela de opções
+
+    U->>C: escolhe o serviço e informa o destinatário
+    C->>S: contratar_envio(dry_run=true, chave)
+    S->>A: busca a cotação (existe, não expirou, não foi usada)
+    S-->>C: status "simulado" (nada foi contratado)
+    C-->>U: resumo e pergunta "posso contratar?"
+
+    U->>C: "sim"
+    C->>S: contratar_envio(dry_run=false, mesma chave)
+    S->>A: grava o envio e marca a cotação como usada
+    S-->>C: status "contratado", envio_id, rastreio
+    C-->>U: confirmação
+
+    Note over C,S: Repetir a mesma chave com o mesmo pedido devolve o mesmo envio (reaproveitado). A mesma chave com outro pedido dá conflito_idempotencia.
+```
+
+### Modos de execução
+
+```mermaid
+flowchart LR
+    CC[Claude Code]
+    CC -- "stdio" --> BIN["bin/mcp-frete"]
+    CC -- "HTTP :8000/mcp<br/>header apikey" --> KONG["Kong<br/>key-auth + rate-limiting"]
+    KONG -- "HTTP :8080/mcp" --> SRV["mcp-frete<br/>(container, não-root)"]
+    DBG["curl / Inspector"] -- "HTTP :8080/mcp" --> BIN2["mcp-frete -http :8080"]
+```
+
 ## Qual modo usar?
 
 | Modo | Quando usar | Como |
