@@ -24,6 +24,16 @@ Peça, por exemplo: *"Quanto custa mandar 2 camisetas de 300 g (caixa 30×20×5)
 
 O passo a passo completo (cenários de teste, Inspector, curl, Kong, falhas provocadas) está em [GUIA.md](GUIA.md).
 
+## Qual modo usar?
+
+| Modo | Quando usar | Como |
+|---|---|---|
+| **stdio** (padrão) | Desenvolver tools e regras; iterar rápido no Claude Code. Não precisa de Docker. | `make build` e abrir o `claude` na raiz (`.mcp.json` já registra `mcp-frete`) |
+| **HTTP direto** | Depurar o transporte com `curl` ou o MCP Inspector, sem gateway. | `make run-http` (escuta em `:8080/mcp`) |
+| **HTTP via Kong** | Validar o servidor atrás de um gateway: autenticação (`apikey`), rate limit e falhas de rede. | `make docker`, e copiar a entrada de `.mcp.kong.example.json` para o seu `.mcp.json` |
+
+O `.mcp.json` traz só o modo stdio de propósito: assim o projeto funciona logo após o clone, sem Docker. O Kong é opcional. Se você usar os dois modos ao mesmo tempo, as tools aparecem duplicadas (`mcp__mcp-frete__*` e `mcp__mcp-frete-kong__*`); desative um deles em `/mcp`.
+
 ## Usando como template
 
 1. Clique em **Use this template** no GitHub (ou faça fork).

@@ -17,6 +17,8 @@ O servidor roda de dois jeitos:
 | Local | stdio | `mcp-frete` | Desenvolvimento e teste rápido no Claude Code |
 | Via gateway | Streamable HTTP em `/mcp` | `mcp-frete-kong` (em `.mcp.kong.example.json`) | Testar autenticação e rate limit do Kong |
 
+Comece pelo stdio (não exige Docker). Passe para o Kong quando quiser validar autenticação, rate limit ou falhas de rede. Para depurar só o transporte HTTP, sem gateway, use o passo 7. Usar os dois modos ao mesmo tempo duplica as tools no Claude Code; desative um deles em `/mcp`.
+
 ```
 Claude Code ──stdio──────────────────────────► bin/mcp-frete
 Claude Code ──HTTP :8000/mcp (apikey)──► Kong ──► mcp-frete:8080/mcp
