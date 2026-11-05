@@ -1,0 +1,14 @@
+bin/
+dist/
+*.test
+*.out
+coverage.*
+.DS_Store
+.idea/
+.vscode/
+
+# Configuração local do Claude Code (aprovações e preferências pessoais)
+.claude/settings.local.json
+.mcp.local.json
+.env
+.env.*

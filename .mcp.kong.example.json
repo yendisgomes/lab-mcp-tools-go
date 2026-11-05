@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mcp-frete-kong": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp",
+      "headers": {
+        "apikey": "poc-chave-local"
+      }
+    }
+  }
+}

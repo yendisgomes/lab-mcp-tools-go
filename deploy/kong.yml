@@ -1,0 +1,26 @@
+_format_version: "3.0"
+
+services:
+  - name: mcp-frete
+    url: http://mcp-frete:8080
+    routes:
+      - name: mcp
+        paths:
+          - /mcp
+        strip_path: false
+        # Streamable HTTP pode responder por SSE: não bufferizar.
+        request_buffering: false
+        response_buffering: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names: [apikey]
+      - name: rate-limiting
+        config:
+          minute: 10
+          policy: local
+
+consumers:
+  - username: poc
+    keyauth_credentials:
+      - key: poc-chave-local
